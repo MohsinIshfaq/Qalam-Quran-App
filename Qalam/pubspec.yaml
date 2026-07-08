@@ -62,6 +62,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/mushaf/13_line/complete_quran_13_line.pdf
+    - assets/mushaf/15_line/complete_quran_15_line.pdf
+    - assets/mushaf/16_line/complete_quran_16_line.pdf
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

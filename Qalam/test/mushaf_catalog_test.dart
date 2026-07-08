@@ -17,4 +17,18 @@ void main() {
     expect(source.pageForJuz(2), 29);
     expect(source.juzForPage(848).number, 30);
   });
+
+  test('catalog exposes 15-line and 16-line Mushaf sources', () {
+    expect(MushafCatalog.sources, hasLength(3));
+
+    expect(MushafCatalog.fifteenLine.totalPages, 619);
+    expect(MushafCatalog.fifteenLine.firstReadablePage, 3);
+    expect(MushafCatalog.fifteenLine.juzList, hasLength(30));
+    expect(MushafCatalog.fifteenLine.surahList.first.verifiedStartPage, 3);
+
+    expect(MushafCatalog.sixteenLine.totalPages, 559);
+    expect(MushafCatalog.sixteenLine.firstReadablePage, 3);
+    expect(MushafCatalog.sixteenLine.juzList, hasLength(30));
+    expect(MushafCatalog.sixteenLine.surahList.first.verifiedStartPage, 3);
+  });
 }

@@ -42,8 +42,36 @@ class MushafCatalog {
       32,
       30,
     ]),
-    surahList: _surahList,
+    surahList: _surahListFor(fatihahPage: 2, baqarahPage: 3),
   );
+
+  static final MushafSource fifteenLine = MushafSource(
+    id: 'quran_15_line',
+    title: '15-Line Quran',
+    lineCount: 15,
+    assetPath: 'assets/mushaf/15_line/complete_quran_15_line.pdf',
+    totalPages: 619,
+    firstReadablePage: 3,
+    juzList: _distributedJuzList(firstPage: 3, contentPageCount: 610),
+    surahList: _surahListFor(fatihahPage: 3, baqarahPage: 4),
+  );
+
+  static final MushafSource sixteenLine = MushafSource(
+    id: 'quran_16_line',
+    title: '16-Line Quran',
+    lineCount: 16,
+    assetPath: 'assets/mushaf/16_line/complete_quran_16_line.pdf',
+    totalPages: 559,
+    firstReadablePage: 3,
+    juzList: _distributedJuzList(firstPage: 3, contentPageCount: 548),
+    surahList: _surahListFor(fatihahPage: 3, baqarahPage: 4),
+  );
+
+  static final List<MushafSource> sources = List.unmodifiable([
+    thirteenLine,
+    fifteenLine,
+    sixteenLine,
+  ]);
 
   static List<JuzInfo> _juzList(List<int> pageCounts) {
     var startPage = 1;
@@ -67,6 +95,59 @@ class MushafCatalog {
     }
 
     return List.unmodifiable(result);
+  }
+
+  static List<JuzInfo> _distributedJuzList({
+    required int firstPage,
+    required int contentPageCount,
+  }) {
+    final result = <JuzInfo>[];
+
+    for (var index = 0; index < 30; index += 1) {
+      final relativeStart = (index * contentPageCount) ~/ 30;
+      final relativeEnd = ((index + 1) * contentPageCount) ~/ 30;
+
+      result.add(
+        JuzInfo(
+          number: index + 1,
+          startPage: firstPage + relativeStart,
+          pageCount: relativeEnd - relativeStart,
+        ),
+      );
+    }
+
+    return List.unmodifiable(result);
+  }
+
+  static List<SurahInfo> _surahListFor({
+    required int fatihahPage,
+    required int baqarahPage,
+  }) {
+    return List.unmodifiable(
+      _surahList.map((surah) {
+        if (surah.number == 1) {
+          return SurahInfo(
+            number: surah.number,
+            englishName: surah.englishName,
+            arabicName: surah.arabicName,
+            startJuz: surah.startJuz,
+            verifiedStartPage: fatihahPage,
+          );
+        }
+
+        if (surah.number == 2) {
+          return SurahInfo(
+            number: surah.number,
+            englishName: surah.englishName,
+            arabicName: surah.arabicName,
+            startJuz: surah.startJuz,
+            verifiedStartPage: baqarahPage,
+          );
+        }
+
+        return surah;
+      }),
+    );
   }
 
   static const List<SurahInfo> _surahList = <SurahInfo>[

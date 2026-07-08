@@ -44,7 +44,7 @@ class QalamApp extends StatelessWidget {
         ),
       ),
       home: MushafLineSelectionScreen(
-        thirteenLineSource: MushafCatalog.thirteenLine,
+        sources: MushafCatalog.sources,
         repository: mushafRepository,
       ),
     );

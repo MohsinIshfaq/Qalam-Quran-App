@@ -82,12 +82,12 @@ String _paraEnglishName(int number) {
 
 class MushafLineSelectionScreen extends StatelessWidget {
   const MushafLineSelectionScreen({
-    required this.thirteenLineSource,
+    required this.sources,
     required this.repository,
     super.key,
   });
 
-  final MushafSource thirteenLineSource;
+  final List<MushafSource> sources;
   final MushafRepository repository;
 
   void _openSource(BuildContext context, MushafSource source) {
@@ -96,16 +96,6 @@ class MushafLineSelectionScreen extends StatelessWidget {
         builder: (context) {
           return MushafHomeScreen(source: source, repository: repository);
         },
-      ),
-    );
-  }
-
-  void _showComingSoon(BuildContext context, String title) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$title PDF is not added yet'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(milliseconds: 1500),
       ),
     );
   }
@@ -141,29 +131,17 @@ class MushafLineSelectionScreen extends StatelessWidget {
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   childAspectRatio: isWide ? 1.45 : 2.45,
-                  children: [
-                    _MenuTile(
-                      title: '13-Line',
-                      subtitle: 'Open Quran',
-                      icon: Icons.auto_stories_outlined,
-                      nightMode: nightMode,
-                      onTap: () => _openSource(context, thirteenLineSource),
-                    ),
-                    _MenuTile(
-                      title: '15-Line',
-                      subtitle: 'Coming soon',
-                      icon: Icons.library_books_outlined,
-                      nightMode: nightMode,
-                      onTap: () => _showComingSoon(context, '15-Line'),
-                    ),
-                    _MenuTile(
-                      title: '16-Line',
-                      subtitle: 'Coming soon',
-                      icon: Icons.chrome_reader_mode_outlined,
-                      nightMode: nightMode,
-                      onTap: () => _showComingSoon(context, '16-Line'),
-                    ),
-                  ],
+                  children: sources
+                      .map((source) {
+                        return _MenuTile(
+                          title: '${source.lineCount}-Line',
+                          subtitle: 'Open Quran',
+                          icon: Icons.auto_stories_outlined,
+                          nightMode: nightMode,
+                          onTap: () => _openSource(context, source),
+                        );
+                      })
+                      .toList(growable: false),
                 ),
               ),
             ),
