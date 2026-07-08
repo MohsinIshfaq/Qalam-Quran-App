@@ -43,8 +43,8 @@ class QalamApp extends StatelessWidget {
           scrolledUnderElevation: 0,
         ),
       ),
-      home: MushafScreen(
-        source: MushafCatalog.thirteenLine,
+      home: MushafLineSelectionScreen(
+        thirteenLineSource: MushafCatalog.thirteenLine,
         repository: mushafRepository,
       ),
     );
