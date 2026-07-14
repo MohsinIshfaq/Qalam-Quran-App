@@ -80,6 +80,10 @@ String _paraEnglishName(int number) {
   };
 }
 
+String _displayPageLabel(MushafSource source, int pdfPage) {
+  return 'Page ${source.displayPageForPdfPage(pdfPage)}';
+}
+
 class MushafLineSelectionScreen extends StatelessWidget {
   const MushafLineSelectionScreen({
     required this.sources,
@@ -314,6 +318,7 @@ class _MushafHomeScreenState extends State<MushafHomeScreen> {
           animation: _reader,
           builder: (context, _) {
             return _ReaderSettingsPanel(
+              source: widget.source,
               currentPage: _reader.currentPage,
               currentJuz: _reader.currentJuz,
               nightMode: _reader.nightMode,
@@ -347,7 +352,7 @@ class _MushafHomeScreenState extends State<MushafHomeScreen> {
         return _QalamScreenShell(
           title: '${widget.source.lineCount}-Line Quran',
           subtitle:
-              'Page ${_reader.currentPage} - Para ${_reader.currentJuz.number}',
+              '${_displayPageLabel(widget.source, _reader.currentPage)} - Para ${_reader.currentJuz.number}',
           nightMode: nightMode,
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -370,7 +375,7 @@ class _MushafHomeScreenState extends State<MushafHomeScreen> {
                         _MenuPrimaryButton(
                           title: 'Continue Reading',
                           subtitle:
-                              'Page ${_reader.currentPage} - Para ${_reader.currentJuz.number}',
+                              '${_displayPageLabel(widget.source, _reader.currentPage)} - Para ${_reader.currentJuz.number}',
                           icon: Icons.menu_book_outlined,
                           nightMode: nightMode,
                           onTap: () =>
@@ -695,7 +700,7 @@ class _MushafScreenState extends State<MushafScreen> {
       animation: _reader,
       builder: (context, _) {
         return _QalamScreenShell(
-          title: 'Page ${_reader.currentPage}',
+          title: _displayPageLabel(widget.source, _reader.currentPage),
           subtitle:
               '${widget.source.lineCount}-Line Quran - Para ${_reader.currentJuz.number}',
           nightMode: _reader.nightMode,
@@ -826,7 +831,7 @@ class _PageNumberPanelState extends State<_PageNumberPanel> {
   void initState() {
     super.initState();
     _pageController = TextEditingController(
-      text: widget.currentPage.toString(),
+      text: widget.source.displayPageForPdfPage(widget.currentPage).toString(),
     );
   }
 
@@ -843,7 +848,7 @@ class _PageNumberPanelState extends State<_PageNumberPanel> {
       return;
     }
 
-    Navigator.of(context).pop(widget.source.clampPage(page));
+    Navigator.of(context).pop(widget.source.pdfPageForDisplayPage(page));
   }
 
   @override
@@ -863,7 +868,8 @@ class _PageNumberPanelState extends State<_PageNumberPanel> {
           const SizedBox(height: 16),
           _DirectPageTab(
             controller: _pageController,
-            totalPages: widget.source.totalPages,
+            firstPage: widget.source.firstDisplayPage,
+            lastPage: widget.source.lastDisplayPage,
             onSubmit: _submitDirectPage,
           ),
         ],
@@ -915,7 +921,7 @@ class JuzIndexScreen extends StatelessWidget {
                       number: juz.number,
                       englishName: englishName,
                       arabicName: arabicName,
-                      subtitle: 'Page ${juz.startPage}',
+                      subtitle: _displayPageLabel(source, juz.startPage),
                       nightMode: nightMode,
                       onTap: () => Navigator.of(context).pop(juz.startPage),
                     );
@@ -1118,7 +1124,7 @@ class SurahIndexScreen extends StatelessWidget {
                       arabicName: surah.arabicName,
                       subtitle: verifiedPage == null
                           ? 'Para ${surah.startJuz}'
-                          : 'Page $verifiedPage',
+                          : _displayPageLabel(source, verifiedPage),
                       nightMode: nightMode,
                       onTap: () => Navigator.of(context).pop(targetPage),
                     );
@@ -1384,12 +1390,14 @@ class _SurahMenuTile extends StatelessWidget {
 class _DirectPageTab extends StatelessWidget {
   const _DirectPageTab({
     required this.controller,
-    required this.totalPages,
+    required this.firstPage,
+    required this.lastPage,
     required this.onSubmit,
   });
 
   final TextEditingController controller;
-  final int totalPages;
+  final int firstPage;
+  final int lastPage;
   final VoidCallback onSubmit;
 
   @override
@@ -1408,7 +1416,7 @@ class _DirectPageTab extends StatelessWidget {
               textInputAction: TextInputAction.go,
               decoration: InputDecoration(
                 labelText: 'Page number',
-                suffixText: '1-$totalPages',
+                suffixText: '$firstPage-$lastPage',
                 border: const OutlineInputBorder(),
               ),
               onSubmitted: (_) => onSubmit(),
@@ -1460,7 +1468,7 @@ class BookmarkPanel extends StatelessWidget {
         return ListTile(
           onTap: () => Navigator.of(context).pop(page),
           leading: const Icon(Icons.bookmark),
-          title: Text('Page $page'),
+          title: Text(_displayPageLabel(source, page)),
           subtitle: Text('Para ${juz.number}'),
           trailing: const Icon(Icons.chevron_right),
         );
@@ -1471,6 +1479,7 @@ class BookmarkPanel extends StatelessWidget {
 
 class _ReaderSettingsPanel extends StatelessWidget {
   const _ReaderSettingsPanel({
+    required this.source,
     required this.currentPage,
     required this.currentJuz,
     required this.nightMode,
@@ -1479,6 +1488,7 @@ class _ReaderSettingsPanel extends StatelessWidget {
     required this.onToggleBookmark,
   });
 
+  final MushafSource source;
   final int currentPage;
   final JuzInfo currentJuz;
   final bool nightMode;
@@ -1501,7 +1511,7 @@ class _ReaderSettingsPanel extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.menu_book_outlined, color: colorScheme.primary),
-            title: Text('Page $currentPage'),
+            title: Text(_displayPageLabel(source, currentPage)),
             subtitle: Text('Para ${currentJuz.number}'),
           ),
           SwitchListTile(

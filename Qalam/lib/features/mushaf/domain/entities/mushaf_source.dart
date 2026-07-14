@@ -6,8 +6,10 @@ class MushafSource {
     required this.assetPath,
     required this.totalPages,
     required this.firstReadablePage,
+    required this.lastReadablePage,
     required this.juzList,
     required this.surahList,
+    this.pageNumberOffset = 0,
   });
 
   final String id;
@@ -16,10 +18,30 @@ class MushafSource {
   final String assetPath;
   final int totalPages;
   final int firstReadablePage;
+  final int lastReadablePage;
+  final int pageNumberOffset;
   final List<JuzInfo> juzList;
   final List<SurahInfo> surahList;
 
   int clampPage(int page) => page.clamp(1, totalPages).toInt();
+
+  int clampReadablePage(int page) {
+    return page.clamp(firstReadablePage, lastReadablePage).toInt();
+  }
+
+  int get firstDisplayPage => firstReadablePage + pageNumberOffset;
+
+  int get lastDisplayPage => lastReadablePage + pageNumberOffset;
+
+  int displayPageForPdfPage(int page) => clampPage(page) + pageNumberOffset;
+
+  int pdfPageForDisplayPage(int displayPage) {
+    final safeDisplayPage = displayPage
+        .clamp(firstDisplayPage, lastDisplayPage)
+        .toInt();
+
+    return clampReadablePage(safeDisplayPage - pageNumberOffset);
+  }
 
   JuzInfo juzForPage(int page) {
     final safePage = clampPage(page);
@@ -37,6 +59,16 @@ class MushafSource {
     );
 
     return juz.startPage;
+  }
+
+  int? pageForSurah(int surahNumber) {
+    for (final surah in surahList) {
+      if (surah.number == surahNumber) {
+        return surah.verifiedStartPage;
+      }
+    }
+
+    return null;
   }
 }
 

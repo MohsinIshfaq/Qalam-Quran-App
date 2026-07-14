@@ -38,7 +38,9 @@ class MushafReaderController extends ChangeNotifier {
     final bookmarks = await _repository.getBookmarkedPages(_source.id);
     final nightMode = await _repository.getNightMode(_source.id);
 
-    _currentPage = _source.clampPage(lastPage ?? _source.firstReadablePage);
+    _currentPage = _source.clampReadablePage(
+      lastPage ?? _source.firstReadablePage,
+    );
     _bookmarks = bookmarks;
     _nightMode = nightMode;
     _isReady = true;
