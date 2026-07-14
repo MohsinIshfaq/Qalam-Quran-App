@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qalam/features/mushaf/data/models/mushaf_catalog.dart';
 import 'package:qalam/features/mushaf/domain/repositories/mushaf_repository.dart';
-import 'package:qalam/features/mushaf/presentation/controllers/mushaf_reader_controller.dart';
+import 'package:qalam/features/mushaf/presentation/common/controllers/mushaf_session_controller.dart';
 
 void main() {
-  test('reader loads local state concurrently', () async {
+  test('session loads local state concurrently', () async {
     final repository = _ControlledLoadRepository();
-    final controller = MushafReaderController(
+    final controller = MushafSessionController(
       MushafCatalog.sixteenLine,
       repository,
     );
@@ -31,7 +31,7 @@ void main() {
 
   test('rapid page changes persist only the latest page', () async {
     final repository = _RecordingRepository();
-    final controller = MushafReaderController(
+    final controller = MushafSessionController(
       MushafCatalog.sixteenLine,
       repository,
     );
@@ -50,7 +50,7 @@ void main() {
 
   test('closing the reader flushes its pending page', () async {
     final repository = _RecordingRepository();
-    final controller = MushafReaderController(
+    final controller = MushafSessionController(
       MushafCatalog.sixteenLine,
       repository,
     );

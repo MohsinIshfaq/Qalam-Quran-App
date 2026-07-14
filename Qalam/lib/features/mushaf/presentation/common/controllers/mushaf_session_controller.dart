@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
-import '../../domain/entities/mushaf_source.dart';
-import '../../domain/repositories/mushaf_repository.dart';
-import '../services/mushaf_pdf_cache.dart';
+import '../../../domain/entities/mushaf_source.dart';
+import '../../../domain/repositories/mushaf_repository.dart';
+import '../../services/mushaf_pdf_cache.dart';
 
-class MushafReaderController extends GetxController {
-  MushafReaderController(this._source, this._repository);
+class MushafSessionController extends GetxController {
+  MushafSessionController(this._source, this._repository);
 
   static const Duration _lastPageSaveDelay = Duration(milliseconds: 400);
 
@@ -43,10 +43,6 @@ class MushafReaderController extends GetxController {
   bool get isCurrentPageBookmarked => _bookmarks.value.contains(currentPage);
 
   JuzInfo get currentJuz => _source.juzForPage(currentPage);
-
-  bool get canGoPrevious => currentPage > 1;
-
-  bool get canGoNext => currentPage < _source.totalPages;
 
   @override
   void onInit() {
@@ -93,7 +89,6 @@ class MushafReaderController extends GetxController {
     }
 
     _currentPage.value = safePage;
-
     _pendingLastPage = safePage;
     _lastPageSaveTimer?.cancel();
     _lastPageSaveTimer = Timer(_lastPageSaveDelay, _queuePendingPageSave);
@@ -115,13 +110,11 @@ class MushafReaderController extends GetxController {
     }
 
     _bookmarks.value = updatedBookmarks;
-
     await _repository.saveBookmarkedPages(_source.id, updatedBookmarks);
   }
 
   Future<void> toggleNightMode() async {
     _nightMode.toggle();
-
     await _repository.saveNightMode(_source.id, nightMode);
   }
 

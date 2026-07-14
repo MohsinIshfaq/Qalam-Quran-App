@@ -2,18 +2,21 @@ import 'package:get/get.dart';
 
 import '../../domain/entities/mushaf_source.dart';
 import '../../domain/repositories/mushaf_repository.dart';
-import '../controllers/mushaf_pdf_controller.dart';
-import '../controllers/mushaf_reader_controller.dart';
-import '../controllers/mushaf_selection_controller.dart';
+import '../common/controllers/mushaf_session_controller.dart';
+import '../screens/home/home_controller.dart';
+import '../screens/juz_index/juz_index_controller.dart';
+import '../screens/line_selection/line_selection_controller.dart';
+import '../screens/reader/reader_controller.dart';
+import '../screens/surah_index/surah_index_controller.dart';
 
-class MushafSelectionBinding extends Bindings {
+class LineSelectionBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<MushafSelectionController>(MushafSelectionController.new);
+    Get.lazyPut<LineSelectionController>(LineSelectionController.new);
   }
 }
 
-class MushafBinding extends Bindings {
+class HomeBinding extends Bindings {
   @override
   void dependencies() {
     final source = Get.arguments;
@@ -21,21 +24,42 @@ class MushafBinding extends Bindings {
       throw StateError('A MushafSource is required to open the Quran menu.');
     }
 
-    Get.lazyPut<MushafReaderController>(
-      () => MushafReaderController(source, Get.find<MushafRepository>()),
+    Get.lazyPut<MushafSessionController>(
+      () => MushafSessionController(source, Get.find<MushafRepository>()),
+    );
+    Get.lazyPut<HomeController>(
+      () => HomeController(Get.find<MushafSessionController>()),
     );
   }
 }
 
-class MushafPdfBinding extends Bindings {
+class ReaderBinding extends Bindings {
   @override
   void dependencies() {
     final initialPage = Get.arguments;
-    Get.lazyPut<MushafPdfController>(
-      () => MushafPdfController(
-        Get.find<MushafReaderController>(),
+    Get.lazyPut<ReaderController>(
+      () => ReaderController(
+        Get.find<MushafSessionController>(),
         initialPage is int ? initialPage : null,
       ),
+    );
+  }
+}
+
+class JuzIndexBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<JuzIndexController>(
+      () => JuzIndexController(Get.find<MushafSessionController>()),
+    );
+  }
+}
+
+class SurahIndexBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<SurahIndexController>(
+      () => SurahIndexController(Get.find<MushafSessionController>()),
     );
   }
 }

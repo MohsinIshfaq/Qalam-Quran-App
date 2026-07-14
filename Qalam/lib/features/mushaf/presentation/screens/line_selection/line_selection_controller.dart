@@ -1,10 +1,10 @@
 import 'package:get/get.dart';
 
-import '../../../../app/routes/app_routes.dart';
-import '../../data/models/mushaf_catalog.dart';
-import '../../domain/entities/mushaf_source.dart';
+import '../../../../../app/routes/app_routes.dart';
+import '../../../data/models/mushaf_catalog.dart';
+import '../../../domain/entities/mushaf_source.dart';
 
-class MushafSelectionController extends GetxController {
+class LineSelectionController extends GetxController {
   List<MushafSource> get sources => MushafCatalog.sources;
 
   Future<void> openSource(MushafSource source) async {

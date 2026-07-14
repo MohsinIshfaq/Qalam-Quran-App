@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:pdfx/pdfx.dart';
 
-import '../services/mushaf_pdf_cache.dart';
-import 'mushaf_reader_controller.dart';
+import '../../common/controllers/mushaf_session_controller.dart';
+import '../../services/mushaf_pdf_cache.dart';
 
-class MushafPdfController extends GetxController {
-  MushafPdfController(this.reader, this.initialPage);
+class ReaderController extends GetxController {
+  ReaderController(this.session, this.initialPage);
 
-  final MushafReaderController reader;
+  final MushafSessionController session;
   final int? initialPage;
 
   final Rxn<PdfController> _pdfController = Rxn<PdfController>();
@@ -17,9 +17,9 @@ class MushafPdfController extends GetxController {
 
   PdfController? get pdfController => _pdfController.value;
 
-  Object? get loadError => _loadError.value ?? reader.loadError;
+  Object? get loadError => _loadError.value ?? session.loadError;
 
-  bool get isReady => reader.isReady && pdfController != null;
+  bool get isReady => session.isReady && pdfController != null;
 
   @override
   void onInit() {
@@ -28,20 +28,20 @@ class MushafPdfController extends GetxController {
   }
 
   Future<void> _initialize() async {
-    await reader.load();
+    await session.load();
 
-    if (reader.loadError != null || isClosed) {
+    if (session.loadError != null || isClosed) {
       return;
     }
 
     final requestedPage = initialPage;
     if (requestedPage != null) {
-      reader.setPage(requestedPage);
+      session.setPage(requestedPage);
     }
 
     final controller = PdfController(
-      document: MushafPdfCache.open(reader.source),
-      initialPage: reader.currentPage,
+      document: MushafPdfCache.open(session.source),
+      initialPage: session.currentPage,
       viewportFraction: 1,
     );
 

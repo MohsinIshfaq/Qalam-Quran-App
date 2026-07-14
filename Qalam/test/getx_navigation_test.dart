@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:qalam/app/qalam_app.dart';
 import 'package:qalam/app/routes/app_routes.dart';
 import 'package:qalam/features/mushaf/domain/repositories/mushaf_repository.dart';
-import 'package:qalam/features/mushaf/presentation/controllers/mushaf_reader_controller.dart';
+import 'package:qalam/features/mushaf/presentation/common/controllers/mushaf_session_controller.dart';
 
 void main() {
   setUp(() {
@@ -44,13 +44,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.lineSelection);
-    expect(Get.isRegistered<MushafReaderController>(), isFalse);
+    expect(Get.isRegistered<MushafSessionController>(), isFalse);
 
     await tester.tap(find.text('13-Line'));
     await tester.pumpAndSettle();
 
     expect(find.text('13-Line Quran'), findsOneWidget);
-    expect(Get.find<MushafReaderController>().source.lineCount, 13);
+    expect(Get.find<MushafSessionController>().source.lineCount, 13);
   });
 }
 
