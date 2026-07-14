@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
@@ -7,6 +6,7 @@ import 'package:pdfx/pdfx.dart';
 import '../../domain/entities/mushaf_source.dart';
 import '../../domain/repositories/mushaf_repository.dart';
 import '../controllers/mushaf_reader_controller.dart';
+import '../services/mushaf_pdf_cache.dart';
 
 String _paraArabicName(int number) {
   return switch (number) {
@@ -179,6 +179,11 @@ class _MushafHomeScreenState extends State<MushafHomeScreen> {
     super.initState();
     _reader = MushafReaderController(widget.source, widget.repository);
     unawaited(_loadReader());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        MushafPdfCache.warmUp(widget.source);
+      }
+    });
   }
 
   Future<void> _loadReader() async {
@@ -649,11 +654,11 @@ class _MushafScreenState extends State<MushafScreen> {
       final initialPage = widget.initialPage;
 
       if (initialPage != null) {
-        await _reader.setPage(initialPage);
+        _reader.setPage(initialPage);
       }
 
       final controller = PdfController(
-        document: PdfDocument.openAsset(widget.source.assetPath),
+        document: MushafPdfCache.open(widget.source),
         initialPage: _reader.currentPage,
         viewportFraction: 1,
       );
@@ -696,9 +701,82 @@ class _MushafScreenState extends State<MushafScreen> {
       return const Scaffold(body: _ReaderLoadingView());
     }
 
+    final pdfView = OrientationBuilder(
+      builder: (context, orientation) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isTablet = constraints.maxWidth >= 720;
+            final horizontalPadding = isTablet ? 56.0 : 8.0;
+            final verticalPadding = orientation == Orientation.landscape
+                ? 4.0
+                : 6.0;
+            final viewportSize = Size(
+              (constraints.maxWidth - horizontalPadding * 2)
+                  .clamp(1.0, double.infinity)
+                  .toDouble(),
+              (constraints.maxHeight - verticalPadding * 2)
+                  .clamp(1.0, double.infinity)
+                  .toDouble(),
+            );
+            final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                verticalPadding,
+                horizontalPadding,
+                verticalPadding,
+              ),
+              child: PdfView(
+                controller: _pdfController!,
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                pageSnapping: true,
+                renderer: (page) => MushafPdfCache.renderPage(
+                  page,
+                  viewportSize: viewportSize,
+                  devicePixelRatio: devicePixelRatio,
+                ),
+                backgroundDecoration: const BoxDecoration(
+                  color: Colors.transparent,
+                ),
+                builders: PdfViewBuilders<DefaultBuilderOptions>(
+                  options: const DefaultBuilderOptions(
+                    loaderSwitchDuration: Duration(milliseconds: 120),
+                  ),
+                  pageBuilder: _buildPdfPage,
+                  documentLoaderBuilder: (_) => const _ReaderLoadingView(),
+                  pageLoaderBuilder: (_) => const _ReaderLoadingView(),
+                ),
+                onDocumentLoaded: (document) {
+                  if (document.pagesCount != widget.source.totalPages) {
+                    debugPrint(
+                      'Expected ${widget.source.totalPages} pages, '
+                      'loaded ${document.pagesCount}.',
+                    );
+                  }
+                },
+                onPageChanged: _reader.setPage,
+                onDocumentError: (error) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  setState(() {
+                    _loadError = error;
+                  });
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+
     return AnimatedBuilder(
       animation: _reader,
-      builder: (context, _) {
+      child: pdfView,
+      builder: (context, pdfView) {
         return _QalamScreenShell(
           title: _displayPageLabel(widget.source, _reader.currentPage),
           subtitle:
@@ -707,94 +785,18 @@ class _MushafScreenState extends State<MushafScreen> {
           backgroundColor: _reader.nightMode
               ? const Color(0xFF07100D)
               : const Color(0xFFF2EADA),
-          child: OrientationBuilder(
-            builder: (context, orientation) {
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final isTablet = constraints.maxWidth >= 720;
-                  final horizontalPadding = isTablet ? 56.0 : 8.0;
-                  final verticalPadding = orientation == Orientation.landscape
-                      ? 4.0
-                      : 6.0;
-
-                  return Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            verticalPadding,
-                            horizontalPadding,
-                            verticalPadding,
-                          ),
-                          child: PdfView(
-                            controller: _pdfController!,
-                            scrollDirection: Axis.horizontal,
-                            reverse: true,
-                            pageSnapping: true,
-                            renderer: _renderMushafPage,
-                            backgroundDecoration: const BoxDecoration(
-                              color: Colors.transparent,
-                            ),
-                            builders: PdfViewBuilders<DefaultBuilderOptions>(
-                              options: const DefaultBuilderOptions(),
-                              pageBuilder: _buildPdfPage,
-                              documentLoaderBuilder: (_) =>
-                                  const _ReaderLoadingView(),
-                              pageLoaderBuilder: (_) =>
-                                  const _ReaderLoadingView(),
-                            ),
-                            onDocumentLoaded: (document) {
-                              if (document.pagesCount !=
-                                  widget.source.totalPages) {
-                                debugPrint(
-                                  'Expected ${widget.source.totalPages} pages, '
-                                  'loaded ${document.pagesCount}.',
-                                );
-                              }
-                            },
-                            onPageChanged: (page) {
-                              unawaited(_reader.setPage(page));
-                            },
-                            onDocumentError: (error) {
-                              if (!mounted) {
-                                return;
-                              }
-
-                              setState(() {
-                                _loadError = error;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      if (_reader.nightMode)
-                        const Positioned.fill(
-                          child: IgnorePointer(
-                            child: ColoredBox(color: Color(0x33000000)),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              );
-            },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              pdfView!,
+              if (_reader.nightMode)
+                const IgnorePointer(
+                  child: ColoredBox(color: Color(0x33000000)),
+                ),
+            ],
           ),
         );
       },
-    );
-  }
-
-  static Future<PdfPageImage?> _renderMushafPage(PdfPage page) {
-    const scale = 3.0;
-
-    return page.render(
-      width: page.width * scale,
-      height: page.height * scale,
-      format: PdfPageImageFormat.jpeg,
-      backgroundColor: '#FFFFFF',
-      quality: 100,
-      forPrint: true,
     );
   }
 
@@ -896,37 +898,34 @@ class JuzIndexScreen extends StatelessWidget {
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 720;
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              isWide ? 40 : 18,
-              18,
-              isWide ? 40 : 18,
-              24,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 820),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: source.juzList.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final juz = source.juzList[index];
-                    final arabicName = _paraArabicName(juz.number);
-                    final englishName = _paraEnglishName(juz.number);
-
-                    return _ParaMenuTile(
-                      number: juz.number,
-                      englishName: englishName,
-                      arabicName: arabicName,
-                      subtitle: _displayPageLabel(source, juz.startPage),
-                      nightMode: nightMode,
-                      onTap: () => Navigator.of(context).pop(juz.startPage),
-                    );
-                  },
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 820),
+              child: ListView.separated(
+                padding: EdgeInsets.fromLTRB(
+                  isWide ? 40 : 18,
+                  18,
+                  isWide ? 40 : 18,
+                  24,
                 ),
+                itemCount: source.juzList.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final juz = source.juzList[index];
+                  final arabicName = _paraArabicName(juz.number);
+                  final englishName = _paraEnglishName(juz.number);
+
+                  return _ParaMenuTile(
+                    number: juz.number,
+                    englishName: englishName,
+                    arabicName: arabicName,
+                    subtitle: _displayPageLabel(source, juz.startPage),
+                    nightMode: nightMode,
+                    onTap: () => Navigator.of(context).pop(juz.startPage),
+                  );
+                },
               ),
             ),
           );
@@ -1001,77 +1000,68 @@ class _QalamHeader extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.08)
         : const Color(0xFFD9C8AA).withValues(alpha: 0.72);
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: nightMode
-                ? const Color(0xEE0A120F)
-                : const Color(0xEEFFFCF5),
-            border: Border(bottom: BorderSide(color: borderColor)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: nightMode ? 0.2 : 0.07),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: nightMode ? const Color(0xEE0A120F) : const Color(0xEEFFFCF5),
+        border: Border(bottom: BorderSide(color: borderColor)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: nightMode ? 0.2 : 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
-            child: Row(
-              children: [
-                if (showBackButton) ...[
-                  IconButton(
-                    tooltip: 'Back',
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                    style: IconButton.styleFrom(
-                      fixedSize: const Size.square(40),
-                      foregroundColor: titleColor,
-                      backgroundColor: nightMode
-                          ? Colors.white.withValues(alpha: 0.07)
-                          : Colors.white.withValues(alpha: 0.72),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: titleColor,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: subtitleColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
+        child: Row(
+          children: [
+            if (showBackButton) ...[
+              IconButton(
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                style: IconButton.styleFrom(
+                  fixedSize: const Size.square(40),
+                  foregroundColor: titleColor,
+                  backgroundColor: nightMode
+                      ? Colors.white.withValues(alpha: 0.07)
+                      : Colors.white.withValues(alpha: 0.72),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: titleColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: subtitleColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -1096,40 +1086,37 @@ class SurahIndexScreen extends StatelessWidget {
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 720;
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              isWide ? 40 : 18,
-              18,
-              isWide ? 40 : 18,
-              24,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 820),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: source.surahList.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final surah = source.surahList[index];
-                    final verifiedPage = surah.verifiedStartPage;
-                    final fallbackPage = source.pageForJuz(surah.startJuz);
-                    final targetPage = verifiedPage ?? fallbackPage;
-
-                    return _SurahMenuTile(
-                      number: surah.number,
-                      englishName: surah.englishName,
-                      arabicName: surah.arabicName,
-                      subtitle: verifiedPage == null
-                          ? 'Para ${surah.startJuz}'
-                          : _displayPageLabel(source, verifiedPage),
-                      nightMode: nightMode,
-                      onTap: () => Navigator.of(context).pop(targetPage),
-                    );
-                  },
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 820),
+              child: ListView.separated(
+                padding: EdgeInsets.fromLTRB(
+                  isWide ? 40 : 18,
+                  18,
+                  isWide ? 40 : 18,
+                  24,
                 ),
+                itemCount: source.surahList.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final surah = source.surahList[index];
+                  final verifiedPage = surah.verifiedStartPage;
+                  final fallbackPage = source.pageForJuz(surah.startJuz);
+                  final targetPage = verifiedPage ?? fallbackPage;
+
+                  return _SurahMenuTile(
+                    number: surah.number,
+                    englishName: surah.englishName,
+                    arabicName: surah.arabicName,
+                    subtitle: verifiedPage == null
+                        ? 'Para ${surah.startJuz}'
+                        : _displayPageLabel(source, verifiedPage),
+                    nightMode: nightMode,
+                    onTap: () => Navigator.of(context).pop(targetPage),
+                  );
+                },
               ),
             ),
           );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/mushaf_source.dart';
@@ -6,6 +8,8 @@ import '../../domain/repositories/mushaf_repository.dart';
 class MushafReaderController extends ChangeNotifier {
   MushafReaderController(this._source, this._repository);
 
+  static const Duration _lastPageSaveDelay = Duration(milliseconds: 400);
+
   final MushafSource _source;
   final MushafRepository _repository;
 
@@ -13,6 +17,9 @@ class MushafReaderController extends ChangeNotifier {
   bool _nightMode = false;
   int _currentPage = 1;
   Set<int> _bookmarks = <int>{};
+  Timer? _lastPageSaveTimer;
+  int? _pendingLastPage;
+  Future<void> _lastPageSaveQueue = Future<void>.value();
 
   bool get isReady => _isReady;
 
@@ -34,9 +41,14 @@ class MushafReaderController extends ChangeNotifier {
   bool get canGoNext => _currentPage < _source.totalPages;
 
   Future<void> load() async {
-    final lastPage = await _repository.getLastReadPage(_source.id);
-    final bookmarks = await _repository.getBookmarkedPages(_source.id);
-    final nightMode = await _repository.getNightMode(_source.id);
+    final values = await Future.wait<Object?>(<Future<Object?>>[
+      _repository.getLastReadPage(_source.id),
+      _repository.getBookmarkedPages(_source.id),
+      _repository.getNightMode(_source.id),
+    ]);
+    final lastPage = values[0] as int?;
+    final bookmarks = values[1] as Set<int>;
+    final nightMode = values[2] as bool;
 
     _currentPage = _source.clampReadablePage(
       lastPage ?? _source.firstReadablePage,
@@ -47,7 +59,7 @@ class MushafReaderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setPage(int page) async {
+  void setPage(int page) {
     final safePage = _source.clampPage(page);
 
     if (_currentPage == safePage) {
@@ -57,7 +69,15 @@ class MushafReaderController extends ChangeNotifier {
     _currentPage = safePage;
     notifyListeners();
 
-    await _repository.saveLastReadPage(_source.id, safePage);
+    _pendingLastPage = safePage;
+    _lastPageSaveTimer?.cancel();
+    _lastPageSaveTimer = Timer(_lastPageSaveDelay, _queuePendingPageSave);
+  }
+
+  Future<void> flushPendingPageSave() {
+    _lastPageSaveTimer?.cancel();
+    _queuePendingPageSave();
+    return _lastPageSaveQueue;
   }
 
   Future<void> toggleCurrentBookmark() async {
@@ -80,5 +100,27 @@ class MushafReaderController extends ChangeNotifier {
     notifyListeners();
 
     await _repository.saveNightMode(_source.id, _nightMode);
+  }
+
+  void _queuePendingPageSave() {
+    _lastPageSaveTimer = null;
+    final page = _pendingLastPage;
+
+    if (page == null) {
+      return;
+    }
+
+    _pendingLastPage = null;
+    _lastPageSaveQueue = _lastPageSaveQueue
+        .then((_) => _repository.saveLastReadPage(_source.id, page))
+        .catchError((Object error, StackTrace stackTrace) {
+          debugPrint('Unable to save the last Quran page: $error');
+        });
+  }
+
+  @override
+  void dispose() {
+    unawaited(flushPendingPageSave());
+    super.dispose();
   }
 }

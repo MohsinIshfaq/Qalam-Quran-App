@@ -59,7 +59,7 @@ void main() {
       244,
       264,
       284,
-      307,
+      304,
       324,
       344,
       364,
@@ -95,7 +95,7 @@ void main() {
     expect(MushafCatalog.fifteenLine.pageForJuz(2), 24);
     expect(MushafCatalog.fifteenLine.displayPageForPdfPage(24), 23);
     expect(MushafCatalog.fifteenLine.pageForJuz(3), 44);
-    expect(MushafCatalog.fifteenLine.pageForJuz(16), 307);
+    expect(MushafCatalog.fifteenLine.pageForJuz(16), 304);
     expect(MushafCatalog.fifteenLine.pageForJuz(25), 484);
     expect(MushafCatalog.fifteenLine.pageForJuz(30), 588);
     expect(MushafCatalog.fifteenLine.surahList.first.verifiedStartPage, 3);
