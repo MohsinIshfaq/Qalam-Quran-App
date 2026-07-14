@@ -26,7 +26,7 @@ void main() {
     expect(controller.currentPage, 120);
     expect(controller.bookmarks, <int>[120, 140]);
     expect(controller.nightMode, isTrue);
-    controller.dispose();
+    controller.onClose();
   });
 
   test('rapid page changes persist only the latest page', () async {
@@ -45,10 +45,10 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 450));
 
     expect(repository.savedPages, <int>[122]);
-    controller.dispose();
+    controller.onClose();
   });
 
-  test('disposing the reader flushes its pending page', () async {
+  test('closing the reader flushes its pending page', () async {
     final repository = _RecordingRepository();
     final controller = MushafReaderController(
       MushafCatalog.sixteenLine,
@@ -56,7 +56,7 @@ void main() {
     );
 
     controller.setPage(240);
-    controller.dispose();
+    controller.onClose();
     await Future<void>.delayed(Duration.zero);
 
     expect(repository.savedPages, <int>[240]);

@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:pdfx/pdfx.dart';
 
+import '../../../../app/routes/app_routes.dart';
 import '../../domain/entities/mushaf_source.dart';
-import '../../domain/repositories/mushaf_repository.dart';
+import '../controllers/mushaf_pdf_controller.dart';
 import '../controllers/mushaf_reader_controller.dart';
+import '../controllers/mushaf_selection_controller.dart';
 import '../services/mushaf_pdf_cache.dart';
 
 String _paraArabicName(int number) {
@@ -84,25 +87,8 @@ String _displayPageLabel(MushafSource source, int pdfPage) {
   return 'Page ${source.displayPageForPdfPage(pdfPage)}';
 }
 
-class MushafLineSelectionScreen extends StatelessWidget {
-  const MushafLineSelectionScreen({
-    required this.sources,
-    required this.repository,
-    super.key,
-  });
-
-  final List<MushafSource> sources;
-  final MushafRepository repository;
-
-  void _openSource(BuildContext context, MushafSource source) {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) {
-          return MushafHomeScreen(source: source, repository: repository);
-        },
-      ),
-    );
-  }
+class MushafLineSelectionScreen extends GetView<MushafSelectionController> {
+  const MushafLineSelectionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -135,14 +121,14 @@ class MushafLineSelectionScreen extends StatelessWidget {
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   childAspectRatio: isWide ? 1.45 : 2.45,
-                  children: sources
+                  children: controller.sources
                       .map((source) {
                         return _MenuTile(
                           title: '${source.lineCount}-Line',
                           subtitle: 'Open Quran',
                           icon: Icons.auto_stories_outlined,
                           nightMode: nightMode,
-                          onTap: () => _openSource(context, source),
+                          onTap: () => unawaited(controller.openSource(source)),
                         );
                       })
                       .toList(growable: false),
@@ -156,98 +142,37 @@ class MushafLineSelectionScreen extends StatelessWidget {
   }
 }
 
-class MushafHomeScreen extends StatefulWidget {
-  const MushafHomeScreen({
-    required this.source,
-    required this.repository,
-    super.key,
-  });
-
-  final MushafSource source;
-  final MushafRepository repository;
-
-  @override
-  State<MushafHomeScreen> createState() => _MushafHomeScreenState();
-}
-
-class _MushafHomeScreenState extends State<MushafHomeScreen> {
-  late final MushafReaderController _reader;
-  Object? _loadError;
-
-  @override
-  void initState() {
-    super.initState();
-    _reader = MushafReaderController(widget.source, widget.repository);
-    unawaited(_loadReader());
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        MushafPdfCache.warmUp(widget.source);
-      }
-    });
-  }
-
-  Future<void> _loadReader() async {
-    try {
-      await _reader.load();
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {});
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _loadError = error;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _reader.dispose();
-    super.dispose();
-  }
+class MushafHomeScreen extends GetView<MushafReaderController> {
+  const MushafHomeScreen({super.key});
 
   Future<void> _openReader({int? page}) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) {
-          return MushafScreen(
-            source: widget.source,
-            repository: widget.repository,
-            initialPage: page,
-          );
-        },
-      ),
-    );
-
-    if (mounted) {
-      unawaited(_loadReader());
-    }
+    await (Get.toNamed<dynamic>(AppRoutes.reader, arguments: page) ??
+        Future<dynamic>.value());
   }
 
   Future<void> _openGoToPanel() async {
-    final page = await showModalBottomSheet<int>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-      ),
-      builder: (context) {
-        return _PageNumberPanel(
-          source: widget.source,
-          currentPage: _reader.currentPage,
-        );
-      },
+    final pageController = TextEditingController(
+      text: controller.source
+          .displayPageForPdfPage(controller.currentPage)
+          .toString(),
     );
+    int? page;
+    try {
+      page = await Get.bottomSheet<int>(
+        _QalamBottomSheet(
+          child: _PageNumberPanel(
+            source: controller.source,
+            pageController: pageController,
+          ),
+        ),
+        isScrollControlled: true,
+        ignoreSafeArea: false,
+      );
+    } finally {
+      pageController.dispose();
+    }
 
-    if (!mounted || page == null) {
+    if (page == null) {
       return;
     }
 
@@ -255,13 +180,10 @@ class _MushafHomeScreenState extends State<MushafHomeScreen> {
   }
 
   Future<void> _openJuzIndexScreen() async {
-    final page = await Navigator.of(context).push<int>(
-      MaterialPageRoute(
-        builder: (context) => JuzIndexScreen(source: widget.source),
-      ),
-    );
+    final result = await Get.toNamed<dynamic>(AppRoutes.juzIndex);
+    final page = result is int ? result : null;
 
-    if (!mounted || page == null) {
+    if (page == null) {
       return;
     }
 
@@ -269,13 +191,10 @@ class _MushafHomeScreenState extends State<MushafHomeScreen> {
   }
 
   Future<void> _openSurahIndexScreen() async {
-    final page = await Navigator.of(context).push<int>(
-      MaterialPageRoute(
-        builder: (context) => SurahIndexScreen(source: widget.source),
-      ),
-    );
+    final result = await Get.toNamed<dynamic>(AppRoutes.surahIndex);
+    final page = result is int ? result : null;
 
-    if (!mounted || page == null) {
+    if (page == null) {
       return;
     }
 
@@ -283,27 +202,19 @@ class _MushafHomeScreenState extends State<MushafHomeScreen> {
   }
 
   Future<void> _openBookmarksPanel() async {
-    final page = await showModalBottomSheet<int>(
-      context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    final page = await Get.bottomSheet<int>(
+      _QalamBottomSheet(
+        child: Obx(
+          () => BookmarkPanel(
+            source: controller.source,
+            bookmarks: controller.bookmarks,
+          ),
+        ),
       ),
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _reader,
-          builder: (context, _) {
-            return BookmarkPanel(
-              source: widget.source,
-              bookmarks: _reader.bookmarks,
-            );
-          },
-        );
-      },
+      ignoreSafeArea: false,
     );
 
-    if (!mounted || page == null) {
+    if (page == null) {
       return;
     }
 
@@ -311,137 +222,127 @@ class _MushafHomeScreenState extends State<MushafHomeScreen> {
   }
 
   Future<void> _openSettingsPanel() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+    await Get.bottomSheet<void>(
+      _QalamBottomSheet(
+        child: Obx(
+          () => _ReaderSettingsPanel(
+            source: controller.source,
+            currentPage: controller.currentPage,
+            currentJuz: controller.currentJuz,
+            nightMode: controller.nightMode,
+            isBookmarked: controller.isCurrentPageBookmarked,
+            onToggleNightMode: () => unawaited(controller.toggleNightMode()),
+            onToggleBookmark: () =>
+                unawaited(controller.toggleCurrentBookmark()),
+          ),
+        ),
       ),
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _reader,
-          builder: (context, _) {
-            return _ReaderSettingsPanel(
-              source: widget.source,
-              currentPage: _reader.currentPage,
-              currentJuz: _reader.currentJuz,
-              nightMode: _reader.nightMode,
-              isBookmarked: _reader.isCurrentPageBookmarked,
-              onToggleNightMode: () => unawaited(_reader.toggleNightMode()),
-              onToggleBookmark: () =>
-                  unawaited(_reader.toggleCurrentBookmark()),
-            );
-          },
-        );
-      },
+      ignoreSafeArea: false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final error = _loadError;
+    return Obx(() {
+      final error = controller.loadError;
+      if (error != null) {
+        return Scaffold(body: _ReaderErrorView(message: error.toString()));
+      }
 
-    if (error != null) {
-      return Scaffold(body: _ReaderErrorView(message: error.toString()));
-    }
+      if (!controller.isReady) {
+        return const Scaffold(body: _ReaderLoadingView());
+      }
 
-    if (!_reader.isReady) {
-      return const Scaffold(body: _ReaderLoadingView());
-    }
+      final source = controller.source;
+      final nightMode = controller.nightMode;
+      return _QalamScreenShell(
+        title: '${source.lineCount}-Line Quran',
+        subtitle:
+            '${_displayPageLabel(source, controller.currentPage)} - Para ${controller.currentJuz.number}',
+        nightMode: nightMode,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 720;
+            final gridColumns = isWide ? 3 : 2;
 
-    return AnimatedBuilder(
-      animation: _reader,
-      builder: (context, _) {
-        final nightMode = _reader.nightMode;
-        return _QalamScreenShell(
-          title: '${widget.source.lineCount}-Line Quran',
-          subtitle:
-              '${_displayPageLabel(widget.source, _reader.currentPage)} - Para ${_reader.currentJuz.number}',
-          nightMode: nightMode,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 720;
-              final gridColumns = isWide ? 3 : 2;
-
-              return SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  isWide ? 40 : 20,
-                  18,
-                  isWide ? 40 : 20,
-                  28,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 860),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _MenuPrimaryButton(
-                          title: 'Continue Reading',
-                          subtitle:
-                              '${_displayPageLabel(widget.source, _reader.currentPage)} - Para ${_reader.currentJuz.number}',
-                          icon: Icons.menu_book_outlined,
-                          nightMode: nightMode,
-                          onTap: () =>
-                              unawaited(_openReader(page: _reader.currentPage)),
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                isWide ? 40 : 20,
+                18,
+                isWide ? 40 : 20,
+                28,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _MenuPrimaryButton(
+                        title: 'Continue Reading',
+                        subtitle:
+                            '${_displayPageLabel(source, controller.currentPage)} - Para ${controller.currentJuz.number}',
+                        icon: Icons.menu_book_outlined,
+                        nightMode: nightMode,
+                        onTap: () => unawaited(
+                          _openReader(page: controller.currentPage),
                         ),
-                        const SizedBox(height: 18),
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: gridColumns,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: isWide ? 1.55 : 1.18,
-                          children: [
-                            _MenuTile(
-                              title: 'BookMark',
-                              subtitle: '${_reader.bookmarks.length} saved',
-                              icon: Icons.bookmark_border,
-                              nightMode: nightMode,
-                              onTap: () => unawaited(_openBookmarksPanel()),
-                            ),
-                            _MenuTile(
-                              title: 'Para Index',
-                              subtitle: 'Browse 30 Para',
-                              icon: Icons.explore_outlined,
-                              nightMode: nightMode,
-                              onTap: () => unawaited(_openJuzIndexScreen()),
-                            ),
-                            _MenuTile(
-                              title: 'Surah Index',
-                              subtitle: 'Browse Surahs',
-                              icon: Icons.format_list_bulleted,
-                              nightMode: nightMode,
-                              onTap: () => unawaited(_openSurahIndexScreen()),
-                            ),
-                            _MenuTile(
-                              title: 'Page #',
-                              subtitle: 'Go directly',
-                              icon: Icons.numbers_outlined,
-                              nightMode: nightMode,
-                              onTap: () => unawaited(_openGoToPanel()),
-                            ),
-                            _MenuTile(
-                              title: 'Setting',
-                              subtitle: nightMode ? 'Night mode' : 'Light mode',
-                              icon: Icons.settings_outlined,
-                              nightMode: nightMode,
-                              onTap: () => unawaited(_openSettingsPanel()),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 18),
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: gridColumns,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: isWide ? 1.55 : 1.18,
+                        children: [
+                          _MenuTile(
+                            title: 'BookMark',
+                            subtitle: '${controller.bookmarks.length} saved',
+                            icon: Icons.bookmark_border,
+                            nightMode: nightMode,
+                            onTap: () => unawaited(_openBookmarksPanel()),
+                          ),
+                          _MenuTile(
+                            title: 'Para Index',
+                            subtitle: 'Browse 30 Para',
+                            icon: Icons.explore_outlined,
+                            nightMode: nightMode,
+                            onTap: () => unawaited(_openJuzIndexScreen()),
+                          ),
+                          _MenuTile(
+                            title: 'Surah Index',
+                            subtitle: 'Browse Surahs',
+                            icon: Icons.format_list_bulleted,
+                            nightMode: nightMode,
+                            onTap: () => unawaited(_openSurahIndexScreen()),
+                          ),
+                          _MenuTile(
+                            title: 'Page #',
+                            subtitle: 'Go directly',
+                            icon: Icons.numbers_outlined,
+                            nightMode: nightMode,
+                            onTap: () => unawaited(_openGoToPanel()),
+                          ),
+                          _MenuTile(
+                            title: 'Setting',
+                            subtitle: nightMode ? 'Night mode' : 'Light mode',
+                            icon: Icons.settings_outlined,
+                            nightMode: nightMode,
+                            onTap: () => unawaited(_openSettingsPanel()),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
-        );
-      },
-    );
+              ),
+            );
+          },
+        ),
+      );
+    });
   }
 }
 
@@ -620,87 +521,58 @@ class _MenuTile extends StatelessWidget {
   }
 }
 
-class MushafScreen extends StatefulWidget {
-  const MushafScreen({
-    required this.source,
-    required this.repository,
-    this.initialPage,
-    super.key,
-  });
-
-  final MushafSource source;
-  final MushafRepository repository;
-  final int? initialPage;
-
-  @override
-  State<MushafScreen> createState() => _MushafScreenState();
-}
-
-class _MushafScreenState extends State<MushafScreen> {
-  late final MushafReaderController _reader;
-  PdfController? _pdfController;
-  Object? _loadError;
-
-  @override
-  void initState() {
-    super.initState();
-    _reader = MushafReaderController(widget.source, widget.repository);
-    unawaited(_initialize());
-  }
-
-  Future<void> _initialize() async {
-    try {
-      await _reader.load();
-      final initialPage = widget.initialPage;
-
-      if (initialPage != null) {
-        _reader.setPage(initialPage);
-      }
-
-      final controller = PdfController(
-        document: MushafPdfCache.open(widget.source),
-        initialPage: _reader.currentPage,
-        viewportFraction: 1,
-      );
-
-      if (!mounted) {
-        controller.dispose();
-        return;
-      }
-
-      setState(() {
-        _pdfController = controller;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _loadError = error;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _pdfController?.dispose();
-    _reader.dispose();
-    super.dispose();
-  }
+class MushafScreen extends GetView<MushafPdfController> {
+  const MushafScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final error = _loadError;
+    return Obx(() {
+      final error = controller.loadError;
+      if (error != null) {
+        return Scaffold(body: _ReaderErrorView(message: error.toString()));
+      }
 
-    if (error != null) {
-      return Scaffold(body: _ReaderErrorView(message: error.toString()));
-    }
+      final pdfController = controller.pdfController;
+      if (!controller.isReady || pdfController == null) {
+        return const Scaffold(body: _ReaderLoadingView());
+      }
 
-    if (!_reader.isReady || _pdfController == null) {
-      return const Scaffold(body: _ReaderLoadingView());
-    }
+      return _MushafReaderView(
+        controller: controller,
+        pdfController: pdfController,
+      );
+    });
+  }
 
+  static PhotoViewGalleryPageOptions buildPdfPage(
+    BuildContext context,
+    Future<PdfPageImage> pageImage,
+    int index,
+    PdfDocument document,
+  ) {
+    return PhotoViewGalleryPageOptions(
+      imageProvider: PdfPageImageProvider(pageImage, index, document.id),
+      minScale: PhotoViewComputedScale.contained,
+      maxScale: PhotoViewComputedScale.contained * 4.5,
+      initialScale: PhotoViewComputedScale.contained,
+      heroAttributes: PhotoViewHeroAttributes(tag: '${document.id}-$index'),
+    );
+  }
+}
+
+class _MushafReaderView extends StatelessWidget {
+  const _MushafReaderView({
+    required this.controller,
+    required this.pdfController,
+  });
+
+  final MushafPdfController controller;
+  final PdfController pdfController;
+
+  @override
+  Widget build(BuildContext context) {
+    final reader = controller.reader;
+    final source = reader.source;
     final pdfView = OrientationBuilder(
       builder: (context, orientation) {
         return LayoutBuilder(
@@ -728,7 +600,7 @@ class _MushafScreenState extends State<MushafScreen> {
                 verticalPadding,
               ),
               child: PdfView(
-                controller: _pdfController!,
+                controller: pdfController,
                 scrollDirection: Axis.horizontal,
                 reverse: true,
                 pageSnapping: true,
@@ -744,28 +616,20 @@ class _MushafScreenState extends State<MushafScreen> {
                   options: const DefaultBuilderOptions(
                     loaderSwitchDuration: Duration(milliseconds: 120),
                   ),
-                  pageBuilder: _buildPdfPage,
+                  pageBuilder: MushafScreen.buildPdfPage,
                   documentLoaderBuilder: (_) => const _ReaderLoadingView(),
                   pageLoaderBuilder: (_) => const _ReaderLoadingView(),
                 ),
                 onDocumentLoaded: (document) {
-                  if (document.pagesCount != widget.source.totalPages) {
+                  if (document.pagesCount != source.totalPages) {
                     debugPrint(
-                      'Expected ${widget.source.totalPages} pages, '
+                      'Expected ${source.totalPages} pages, '
                       'loaded ${document.pagesCount}.',
                     );
                   }
                 },
-                onPageChanged: _reader.setPage,
-                onDocumentError: (error) {
-                  if (!mounted) {
-                    return;
-                  }
-
-                  setState(() {
-                    _loadError = error;
-                  });
-                },
+                onPageChanged: reader.setPage,
+                onDocumentError: controller.reportDocumentError,
               ),
             );
           },
@@ -773,84 +637,76 @@ class _MushafScreenState extends State<MushafScreen> {
       },
     );
 
-    return AnimatedBuilder(
-      animation: _reader,
-      child: pdfView,
-      builder: (context, pdfView) {
-        return _QalamScreenShell(
-          title: _displayPageLabel(widget.source, _reader.currentPage),
-          subtitle:
-              '${widget.source.lineCount}-Line Quran - Para ${_reader.currentJuz.number}',
-          nightMode: _reader.nightMode,
-          backgroundColor: _reader.nightMode
-              ? const Color(0xFF07100D)
-              : const Color(0xFFF2EADA),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              pdfView!,
-              if (_reader.nightMode)
-                const IgnorePointer(
-                  child: ColoredBox(color: Color(0x33000000)),
-                ),
-            ],
-          ),
-        );
-      },
-    );
+    return Obx(() {
+      return _QalamScreenShell(
+        title: _displayPageLabel(source, reader.currentPage),
+        subtitle:
+            '${source.lineCount}-Line Quran - Para ${reader.currentJuz.number}',
+        nightMode: reader.nightMode,
+        backgroundColor: reader.nightMode
+            ? const Color(0xFF07100D)
+            : const Color(0xFFF2EADA),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            pdfView,
+            if (reader.nightMode)
+              const IgnorePointer(child: ColoredBox(color: Color(0x33000000))),
+          ],
+        ),
+      );
+    });
   }
+}
 
-  static PhotoViewGalleryPageOptions _buildPdfPage(
-    BuildContext context,
-    Future<PdfPageImage> pageImage,
-    int index,
-    PdfDocument document,
-  ) {
-    return PhotoViewGalleryPageOptions(
-      imageProvider: PdfPageImageProvider(pageImage, index, document.id),
-      minScale: PhotoViewComputedScale.contained,
-      maxScale: PhotoViewComputedScale.contained * 4.5,
-      initialScale: PhotoViewComputedScale.contained,
-      heroAttributes: PhotoViewHeroAttributes(tag: '${document.id}-$index'),
+class _QalamBottomSheet extends StatelessWidget {
+  const _QalamBottomSheet({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _PageNumberPanel extends StatefulWidget {
-  const _PageNumberPanel({required this.source, required this.currentPage});
+class _PageNumberPanel extends StatelessWidget {
+  const _PageNumberPanel({required this.source, required this.pageController});
 
   final MushafSource source;
-  final int currentPage;
-
-  @override
-  State<_PageNumberPanel> createState() => _PageNumberPanelState();
-}
-
-class _PageNumberPanelState extends State<_PageNumberPanel> {
-  late final TextEditingController _pageController;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = TextEditingController(
-      text: widget.source.displayPageForPdfPage(widget.currentPage).toString(),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+  final TextEditingController pageController;
 
   void _submitDirectPage() {
-    final page = int.tryParse(_pageController.text);
+    final page = int.tryParse(pageController.text);
 
     if (page == null) {
       return;
     }
 
-    Navigator.of(context).pop(widget.source.pdfPageForDisplayPage(page));
+    Get.back<int>(result: source.pdfPageForDisplayPage(page));
   }
 
   @override
@@ -869,9 +725,9 @@ class _PageNumberPanelState extends State<_PageNumberPanel> {
           Text('Page #', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           _DirectPageTab(
-            controller: _pageController,
-            firstPage: widget.source.firstDisplayPage,
-            lastPage: widget.source.lastDisplayPage,
+            controller: pageController,
+            firstPage: source.firstDisplayPage,
+            lastPage: source.lastDisplayPage,
             onSubmit: _submitDirectPage,
           ),
         ],
@@ -880,15 +736,13 @@ class _PageNumberPanelState extends State<_PageNumberPanel> {
   }
 }
 
-class JuzIndexScreen extends StatelessWidget {
-  const JuzIndexScreen({required this.source, super.key});
-
-  final MushafSource source;
+class JuzIndexScreen extends GetView<MushafReaderController> {
+  const JuzIndexScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final nightMode =
-        Theme.of(context).colorScheme.brightness == Brightness.dark;
+    final source = controller.source;
+    final nightMode = controller.nightMode;
 
     return _QalamScreenShell(
       title: 'Para',
@@ -923,7 +777,7 @@ class JuzIndexScreen extends StatelessWidget {
                     arabicName: arabicName,
                     subtitle: _displayPageLabel(source, juz.startPage),
                     nightMode: nightMode,
-                    onTap: () => Navigator.of(context).pop(juz.startPage),
+                    onTap: () => Get.back<int>(result: juz.startPage),
                   );
                 },
               ),
@@ -1019,7 +873,7 @@ class _QalamHeader extends StatelessWidget {
             if (showBackButton) ...[
               IconButton(
                 tooltip: 'Back',
-                onPressed: () => Navigator.of(context).maybePop(),
+                onPressed: Get.back<void>,
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
                 style: IconButton.styleFrom(
                   fixedSize: const Size.square(40),
@@ -1068,15 +922,13 @@ class _QalamHeader extends StatelessWidget {
   }
 }
 
-class SurahIndexScreen extends StatelessWidget {
-  const SurahIndexScreen({required this.source, super.key});
-
-  final MushafSource source;
+class SurahIndexScreen extends GetView<MushafReaderController> {
+  const SurahIndexScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final nightMode =
-        Theme.of(context).colorScheme.brightness == Brightness.dark;
+    final source = controller.source;
+    final nightMode = controller.nightMode;
 
     return _QalamScreenShell(
       title: 'Surah',
@@ -1114,7 +966,7 @@ class SurahIndexScreen extends StatelessWidget {
                         ? 'Para ${surah.startJuz}'
                         : _displayPageLabel(source, verifiedPage),
                     nightMode: nightMode,
-                    onTap: () => Navigator.of(context).pop(targetPage),
+                    onTap: () => Get.back<int>(result: targetPage),
                   );
                 },
               ),
@@ -1453,7 +1305,7 @@ class BookmarkPanel extends StatelessWidget {
         final juz = source.juzForPage(page);
 
         return ListTile(
-          onTap: () => Navigator.of(context).pop(page),
+          onTap: () => Get.back<int>(result: page),
           leading: const Icon(Icons.bookmark),
           title: Text(_displayPageLabel(source, page)),
           subtitle: Text('Para ${juz.number}'),
