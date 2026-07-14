@@ -103,16 +103,207 @@ void main() {
     expect(MushafCatalog.fifteenLine.pageForSurah(4), 79);
     expect(MushafCatalog.fifteenLine.pdfPageForDisplayPage(78), 79);
 
-    expect(MushafCatalog.sixteenLine.totalPages, 559);
-    expect(MushafCatalog.sixteenLine.firstReadablePage, 3);
-    expect(MushafCatalog.sixteenLine.lastReadablePage, 550);
-    expect(MushafCatalog.sixteenLine.firstDisplayPage, 2);
-    expect(MushafCatalog.sixteenLine.lastDisplayPage, 549);
-    expect(MushafCatalog.sixteenLine.juzList, hasLength(30));
-    expect(MushafCatalog.sixteenLine.surahList.first.verifiedStartPage, 3);
-    expect(MushafCatalog.sixteenLine.pageForSurah(3), 40);
-    expect(MushafCatalog.sixteenLine.pageForSurah(57), 486);
-    expect(MushafCatalog.sixteenLine.pageForSurah(114), 550);
-    expect(MushafCatalog.sixteenLine.pdfPageForDisplayPage(39), 40);
+    final sixteenLine = MushafCatalog.sixteenLine;
+    const expectedJuzStartPages = <int>[
+      3,
+      22,
+      40,
+      58,
+      76,
+      94,
+      112,
+      130,
+      148,
+      166,
+      184,
+      202,
+      220,
+      237,
+      256,
+      274,
+      292,
+      310,
+      328,
+      346,
+      364,
+      382,
+      400,
+      418,
+      436,
+      454,
+      472,
+      490,
+      510,
+      530,
+    ];
+
+    expect(sixteenLine.totalPages, 559);
+    expect(sixteenLine.firstReadablePage, 3);
+    expect(sixteenLine.lastReadablePage, 550);
+    expect(sixteenLine.firstDisplayPage, 2);
+    expect(sixteenLine.lastDisplayPage, 549);
+    expect(sixteenLine.juzList, hasLength(30));
+    expect(
+      sixteenLine.juzList.map((juz) => juz.startPage),
+      expectedJuzStartPages,
+    );
+    expect(
+      sixteenLine.juzList.fold<int>(0, (total, juz) => total + juz.pageCount),
+      548,
+    );
+    for (var index = 0; index < expectedJuzStartPages.length; index += 1) {
+      final juzNumber = index + 1;
+      final pdfPage = expectedJuzStartPages[index];
+
+      expect(sixteenLine.pageForJuz(juzNumber), pdfPage);
+      expect(sixteenLine.displayPageForPdfPage(pdfPage), pdfPage - 1);
+    }
+    for (final juz in sixteenLine.juzList.skip(1)) {
+      expect(sixteenLine.juzForPage(juz.startPage - 1).number, juz.number - 1);
+      expect(sixteenLine.juzForPage(juz.startPage).number, juz.number);
+    }
+    expect(sixteenLine.juzForPage(550).number, 30);
+    expect(sixteenLine.surahList.first.verifiedStartPage, 3);
+    expect(sixteenLine.pageForSurah(3), 47);
+    expect(sixteenLine.pageForSurah(57), 486);
+    expect(sixteenLine.pageForSurah(114), 550);
+    expect(sixteenLine.pdfPageForDisplayPage(39), 40);
+  });
+
+  test('16-line Surah index matches the scanned title pages', () {
+    final source = MushafCatalog.sixteenLine;
+    const expectedDisplayPages = <int>[
+      2,
+      3,
+      46,
+      70,
+      97,
+      116,
+      137,
+      160,
+      169,
+      188,
+      200,
+      213,
+      225,
+      231,
+      236,
+      241,
+      255,
+      265,
+      276,
+      282,
+      291,
+      300,
+      309,
+      316,
+      325,
+      331,
+      340,
+      348,
+      358,
+      365,
+      371,
+      374,
+      377,
+      386,
+      392,
+      397,
+      402,
+      409,
+      413,
+      421,
+      430,
+      435,
+      441,
+      447,
+      449,
+      453,
+      457,
+      461,
+      464,
+      467,
+      469,
+      472,
+      474,
+      476,
+      479,
+      482,
+      485,
+      489,
+      492,
+      496,
+      498,
+      500,
+      501,
+      503,
+      505,
+      507,
+      509,
+      511,
+      513,
+      515,
+      517,
+      519,
+      521,
+      522,
+      524,
+      525,
+      527,
+      529,
+      530,
+      531,
+      533,
+      533,
+      534,
+      535,
+      536,
+      537,
+      538,
+      538,
+      539,
+      540,
+      541,
+      541,
+      542,
+      542,
+      543,
+      543,
+      544,
+      544,
+      545,
+      545,
+      545,
+      546,
+      546,
+      546,
+      547,
+      547,
+      547,
+      547,
+      548,
+      548,
+      548,
+      548,
+      549,
+      549,
+    ];
+
+    expect(source.surahList, hasLength(expectedDisplayPages.length));
+    for (var index = 0; index < expectedDisplayPages.length; index += 1) {
+      final surahNumber = index + 1;
+      final displayPage = expectedDisplayPages[index];
+      final pdfPage = displayPage + 1;
+      final surah = source.surahList[index];
+
+      expect(surah.number, surahNumber);
+      expect(
+        surah.verifiedStartPage,
+        pdfPage,
+        reason: 'Surah $surahNumber must open on PDF page $pdfPage.',
+      );
+      expect(source.pageForSurah(surahNumber), pdfPage);
+      expect(source.displayPageForPdfPage(pdfPage), displayPage);
+    }
   });
 }

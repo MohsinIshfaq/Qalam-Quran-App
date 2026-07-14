@@ -73,7 +73,10 @@ class MushafCatalog {
     firstReadablePage: 3,
     lastReadablePage: 550,
     pageNumberOffset: -1,
-    juzList: _distributedJuzList(firstPage: 3, contentPageCount: 548),
+    juzList: _juzListWithStartPages(
+      _sixteenLineJuzStartPages,
+      lastReadablePage: 550,
+    ),
     surahList: _surahListWithStartPages(
       _pdfPagesFromDisplayPages(_sixteenLineSurahDisplayPages),
     ),
@@ -104,28 +107,6 @@ class MushafCatalog {
       );
 
       startPage += count;
-    }
-
-    return List.unmodifiable(result);
-  }
-
-  static List<JuzInfo> _distributedJuzList({
-    required int firstPage,
-    required int contentPageCount,
-  }) {
-    final result = <JuzInfo>[];
-
-    for (var index = 0; index < 30; index += 1) {
-      final relativeStart = (index * contentPageCount) ~/ 30;
-      final relativeEnd = ((index + 1) * contentPageCount) ~/ 30;
-
-      result.add(
-        JuzInfo(
-          number: index + 1,
-          startPage: firstPage + relativeStart,
-          pageCount: relativeEnd - relativeStart,
-        ),
-      );
     }
 
     return List.unmodifiable(result);
@@ -446,14 +427,47 @@ class MushafCatalog {
     611,
   ];
 
+  static const List<int> _sixteenLineJuzStartPages = <int>[
+    3,
+    22,
+    40,
+    58,
+    76,
+    94,
+    112,
+    130,
+    148,
+    166,
+    184,
+    202,
+    220,
+    237,
+    256,
+    274,
+    292,
+    310,
+    328,
+    346,
+    364,
+    382,
+    400,
+    418,
+    436,
+    454,
+    472,
+    490,
+    510,
+    530,
+  ];
+
   static const List<int> _sixteenLineSurahDisplayPages = <int>[
     2,
     3,
-    39,
-    64,
-    94,
-    114,
-    134,
+    46,
+    70,
+    97,
+    116,
+    137,
     160,
     169,
     188,
@@ -465,7 +479,7 @@ class MushafCatalog {
     241,
     255,
     265,
-    274,
+    276,
     282,
     291,
     300,
@@ -473,16 +487,16 @@ class MushafCatalog {
     316,
     325,
     331,
-    336,
-    338,
+    340,
+    348,
     358,
     365,
     371,
-    373,
     374,
-    382,
+    377,
+    386,
     392,
-    394,
+    397,
     402,
     409,
     413,
@@ -490,40 +504,40 @@ class MushafCatalog {
     430,
     435,
     441,
-    446,
+    447,
     449,
-    452,
-    454,
+    453,
+    457,
     461,
-    463,
-    466,
+    464,
+    467,
     469,
     472,
-    473,
     474,
+    476,
     479,
     482,
     485,
     489,
     492,
-    494,
+    496,
     498,
     500,
     501,
     503,
     505,
-    506,
+    507,
     509,
     511,
     513,
     515,
-    516,
+    517,
     519,
     521,
     522,
-    523,
+    524,
     525,
-    526,
+    527,
     529,
     530,
     531,
@@ -551,7 +565,7 @@ class MushafCatalog {
     546,
     546,
     546,
-    546,
+    547,
     547,
     547,
     547,
