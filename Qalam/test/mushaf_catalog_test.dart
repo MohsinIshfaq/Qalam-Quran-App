@@ -43,6 +43,61 @@ void main() {
     expect(MushafCatalog.fifteenLine.firstDisplayPage, 2);
     expect(MushafCatalog.fifteenLine.lastDisplayPage, 611);
     expect(MushafCatalog.fifteenLine.juzList, hasLength(30));
+    expect(MushafCatalog.fifteenLine.juzList.map((juz) => juz.startPage), <int>[
+      3,
+      24,
+      44,
+      64,
+      84,
+      104,
+      124,
+      144,
+      164,
+      184,
+      204,
+      224,
+      244,
+      264,
+      284,
+      307,
+      324,
+      344,
+      364,
+      384,
+      404,
+      424,
+      444,
+      464,
+      484,
+      504,
+      524,
+      544,
+      564,
+      588,
+    ]);
+    expect(
+      MushafCatalog.fifteenLine.juzList.fold<int>(
+        0,
+        (total, juz) => total + juz.pageCount,
+      ),
+      610,
+    );
+    for (final juz in MushafCatalog.fifteenLine.juzList.skip(1)) {
+      expect(
+        MushafCatalog.fifteenLine.juzForPage(juz.startPage - 1).number,
+        juz.number - 1,
+      );
+      expect(
+        MushafCatalog.fifteenLine.juzForPage(juz.startPage).number,
+        juz.number,
+      );
+    }
+    expect(MushafCatalog.fifteenLine.pageForJuz(2), 24);
+    expect(MushafCatalog.fifteenLine.displayPageForPdfPage(24), 23);
+    expect(MushafCatalog.fifteenLine.pageForJuz(3), 44);
+    expect(MushafCatalog.fifteenLine.pageForJuz(16), 307);
+    expect(MushafCatalog.fifteenLine.pageForJuz(25), 484);
+    expect(MushafCatalog.fifteenLine.pageForJuz(30), 588);
     expect(MushafCatalog.fifteenLine.surahList.first.verifiedStartPage, 3);
     expect(MushafCatalog.fifteenLine.pageForSurah(3), 52);
     expect(MushafCatalog.fifteenLine.pageForSurah(4), 79);

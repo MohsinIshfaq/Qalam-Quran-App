@@ -55,7 +55,10 @@ class MushafCatalog {
     firstReadablePage: 3,
     lastReadablePage: 612,
     pageNumberOffset: -1,
-    juzList: _distributedJuzList(firstPage: 3, contentPageCount: 610),
+    juzList: _juzListWithStartPages(
+      _fifteenLineJuzStartPages,
+      lastReadablePage: 612,
+    ),
     surahList: _surahListWithStartPages(
       _pdfPagesFromDisplayPages(_fifteenLineSurahDisplayPages),
     ),
@@ -121,6 +124,30 @@ class MushafCatalog {
           number: index + 1,
           startPage: firstPage + relativeStart,
           pageCount: relativeEnd - relativeStart,
+        ),
+      );
+    }
+
+    return List.unmodifiable(result);
+  }
+
+  static List<JuzInfo> _juzListWithStartPages(
+    List<int> startPages, {
+    required int lastReadablePage,
+  }) {
+    final result = <JuzInfo>[];
+
+    for (var index = 0; index < startPages.length; index += 1) {
+      final startPage = startPages[index];
+      final nextStartPage = index + 1 < startPages.length
+          ? startPages[index + 1]
+          : lastReadablePage + 1;
+
+      result.add(
+        JuzInfo(
+          number: index + 1,
+          startPage: startPage,
+          pageCount: nextStartPage - startPage,
         ),
       );
     }
@@ -267,6 +294,39 @@ class MushafCatalog {
     847,
     847,
     848,
+  ];
+
+  static const List<int> _fifteenLineJuzStartPages = <int>[
+    3,
+    24,
+    44,
+    64,
+    84,
+    104,
+    124,
+    144,
+    164,
+    184,
+    204,
+    224,
+    244,
+    264,
+    284,
+    307,
+    324,
+    344,
+    364,
+    384,
+    404,
+    424,
+    444,
+    464,
+    484,
+    504,
+    524,
+    544,
+    564,
+    588,
   ];
 
   static const List<int> _fifteenLineSurahDisplayPages = <int>[
