@@ -108,6 +108,33 @@ void main() {
     expect(find.text('Amma Yatasaaloon'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Surah index remains readable on a narrow phone', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const QalamApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('13-Line'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Surah Index'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Surah 1'), findsOneWidget);
+    expect(find.text('Al-Fatihah'), findsOneWidget);
+    expect(find.text('الفاتحة'), findsOneWidget);
+    expect(find.text('Page 2'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.scrollUntilVisible(find.text('Surah 114'), 800);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Surah 114'), findsOneWidget);
+    expect(find.text('An-Nas'), findsOneWidget);
+    expect(find.text('الناس'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _MemoryMushafRepository implements MushafRepository {
