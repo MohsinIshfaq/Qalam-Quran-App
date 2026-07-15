@@ -5,9 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../common/widgets/qalam_screen_shell.dart';
+import '../../common/widgets/qalam_footer_ornament.dart';
 import '../../common/widgets/reader_state_views.dart';
 import 'components/continue_reading_card.dart';
-import 'components/home_footer_ornament.dart';
 import 'components/home_menu_card.dart';
 import 'components/home_style.dart';
 import 'home_controller.dart';
@@ -120,7 +120,7 @@ class HomeScreen extends GetView<HomeController> {
                           subtitle: controller.settingsMode,
                           onTap: () => unawaited(controller.openSettings()),
                         ),
-                        const HomeFooterOrnament(),
+                        const QalamFooterOrnament(),
                       ],
                     ),
                   ),

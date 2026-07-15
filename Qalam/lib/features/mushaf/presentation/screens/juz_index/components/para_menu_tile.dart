@@ -6,6 +6,7 @@ class ParaMenuTile extends StatelessWidget {
     required this.englishName,
     required this.arabicName,
     required this.subtitle,
+    required this.height,
     required this.nightMode,
     required this.onTap,
     super.key,
@@ -15,6 +16,7 @@ class ParaMenuTile extends StatelessWidget {
   final String englishName;
   final String arabicName;
   final String subtitle;
+  final double height;
   final bool nightMode;
   final VoidCallback onTap;
 
@@ -22,113 +24,234 @@ class ParaMenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseColor = nightMode
         ? const Color(0xFF121B17)
-        : const Color(0xFFFFFCF5);
+        : const Color(0xFFFFFDF8);
     final borderColor = nightMode
         ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFFD9C8AA).withValues(alpha: 0.72);
+        : const Color(0xFFE8DCC0);
     final accentColor = nightMode
         ? const Color(0xFF72D4BF)
-        : const Color(0xFF075E4F);
+        : const Color(0xFF0E4B3F);
     final titleColor = nightMode
         ? const Color(0xFFEAF5EF)
-        : const Color(0xFF21312B);
+        : const Color(0xFF0E4B3F);
     final subtitleColor = nightMode
         ? const Color(0xFFAABBB3)
-        : const Color(0xFF6F6250);
+        : const Color(0xFF6C6253);
 
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: baseColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: nightMode ? 0.16 : 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 21,
-                  backgroundColor: accentColor.withValues(alpha: 0.12),
-                  child: Text(
-                    number.toString(),
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: accentColor,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return Semantics(
+      button: true,
+      label: 'Para $number, $englishName, $subtitle',
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          height: height,
+          decoration: BoxDecoration(
+            color: baseColor,
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: nightMode ? 0.16 : 0.07),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(11),
+            onTap: onTap,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 340;
+
+                  return Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Text(
-                        'Para $number',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: titleColor,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        englishName,
-                        maxLines: 2,
-                        overflow: TextOverflow.visible,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: subtitleColor,
-                          fontWeight: FontWeight.w600,
-                          height: 1.15,
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: compact ? 104 : 130,
+                        child: Opacity(
+                          opacity: nightMode ? 0.08 : 0.2,
+                          child: Image.asset(
+                            'assets/images/line_selection/card_pattern.png',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.topRight,
+                            excludeFromSemantics: true,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: subtitleColor,
-                          fontWeight: FontWeight.w500,
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 11 : 14,
+                        ),
+                        child: Row(
+                          children: [
+                            _ParaNumberBadge(
+                              number: number,
+                              compact: compact,
+                              nightMode: nightMode,
+                            ),
+                            SizedBox(width: compact ? 10 : 16),
+                            Expanded(
+                              child: _ParaDetails(
+                                number: number,
+                                englishName: englishName,
+                                subtitle: subtitle,
+                                compact: compact,
+                                titleColor: titleColor,
+                                subtitleColor: subtitleColor,
+                              ),
+                            ),
+                            SizedBox(width: compact ? 4 : 8),
+                            SizedBox(
+                              width: compact ? 84 : 124,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  arabicName,
+                                  textDirection: TextDirection.rtl,
+                                  textAlign: TextAlign.end,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: titleColor,
+                                    fontSize: compact ? 23 : 29,
+                                    height: 1,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: compact ? 2 : 6),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: accentColor,
+                              size: compact ? 24 : 28,
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 132),
-                  child: Text(
-                    arabicName,
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.end,
-                    maxLines: 2,
-                    overflow: TextOverflow.visible,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: titleColor,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ParaNumberBadge extends StatelessWidget {
+  const _ParaNumberBadge({
+    required this.number,
+    required this.compact,
+    required this.nightMode,
+  });
+
+  final int number;
+  final bool compact;
+  final bool nightMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = compact ? 41.0 : 44.0;
+
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          center: const Alignment(-0.35, -0.4),
+          radius: 0.9,
+          colors: nightMode
+              ? const [Color(0x3329A383), Color(0x2240B493)]
+              : const [Color(0xFFF5F8F3), Color(0xFFDDEBE2)],
+        ),
+      ),
+      child: Text(
+        number.toString(),
+        style: TextStyle(
+          color: nightMode ? const Color(0xFF72D4BF) : const Color(0xFF0E4B3F),
+          fontFamily: 'PlayfairDisplay',
+          fontSize: compact ? 18 : 20,
+          height: 1,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _ParaDetails extends StatelessWidget {
+  const _ParaDetails({
+    required this.number,
+    required this.englishName,
+    required this.subtitle,
+    required this.compact,
+    required this.titleColor,
+    required this.subtitleColor,
+  });
+
+  final int number;
+  final String englishName;
+  final String subtitle;
+  final bool compact;
+  final Color titleColor;
+  final Color subtitleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Para $number',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: titleColor,
+            fontFamily: 'PlayfairDisplay',
+            fontSize: compact ? 17 : 19,
+            height: 1.05,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          englishName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: subtitleColor,
+            fontFamily: 'PlayfairDisplay',
+            fontSize: compact ? 12 : 13.5,
+            height: 1.05,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: subtitleColor,
+            fontFamily: 'Poppins',
+            fontSize: compact ? 10.5 : 11.5,
+            height: 1,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ],
     );
   }
 }
