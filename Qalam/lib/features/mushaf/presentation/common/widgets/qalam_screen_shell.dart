@@ -24,7 +24,7 @@ class QalamScreenShell extends StatelessWidget {
     return Scaffold(
       backgroundColor:
           backgroundColor ??
-          (nightMode ? const Color(0xFF07100D) : const Color(0xFFF5F1E8)),
+          (nightMode ? const Color(0xFF07100D) : const Color(0xFFFBF7F0)),
       body: SafeArea(
         child: Column(
           children: [
@@ -59,28 +59,16 @@ class _QalamHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final titleColor = nightMode
         ? const Color(0xFFEAF5EF)
-        : const Color(0xFF075E4F);
+        : const Color(0xFF0E4B3F);
     final subtitleColor = nightMode
         ? const Color(0xFFB8C9C1)
         : const Color(0xFF625747);
-    final borderColor = nightMode
-        ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFFD9C8AA).withValues(alpha: 0.72);
-
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: nightMode ? const Color(0xEE0A120F) : const Color(0xEEFFFCF5),
-        border: Border(bottom: BorderSide(color: borderColor)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: nightMode ? 0.2 : 0.07),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: nightMode ? const Color(0xFF0A120F) : const Color(0xFFFBF7F0),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
+        padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
         child: Row(
           children: [
             if (showBackButton) ...[
@@ -89,17 +77,25 @@ class _QalamHeader extends StatelessWidget {
                 onPressed: Get.back<void>,
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
                 style: IconButton.styleFrom(
-                  fixedSize: const Size.square(40),
+                  fixedSize: const Size.square(48),
+                  iconSize: 23,
                   foregroundColor: titleColor,
                   backgroundColor: nightMode
                       ? Colors.white.withValues(alpha: 0.07)
-                      : Colors.white.withValues(alpha: 0.72),
+                      : const Color(0xFFFFFDF8),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: nightMode
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : const Color(0xFFE8DCC0),
+                    ),
                   ),
+                  shadowColor: Colors.black.withValues(alpha: 0.18),
+                  elevation: 5,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 14),
             ],
             Expanded(
               child: Column(
@@ -110,19 +106,25 @@ class _QalamHeader extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: TextStyle(
                       color: titleColor,
-                      fontWeight: FontWeight.w800,
+                      fontFamily: 'PlayfairDisplay',
+                      fontSize: 21,
+                      height: 1.05,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 5),
                   Text(
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    style: TextStyle(
                       color: subtitleColor,
-                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      height: 1.1,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
