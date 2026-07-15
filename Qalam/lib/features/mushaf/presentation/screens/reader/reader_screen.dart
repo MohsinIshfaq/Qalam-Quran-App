@@ -13,12 +13,18 @@ class ReaderScreen extends GetView<ReaderController> {
     return Obx(() {
       final error = controller.loadError;
       if (error != null) {
-        return Scaffold(body: ReaderErrorView(message: error.toString()));
+        return Scaffold(
+          backgroundColor: const Color(0xFFFBF7F0),
+          body: ReaderErrorView(message: error.toString()),
+        );
       }
 
       final pdfController = controller.pdfController;
       if (!controller.isReady || pdfController == null) {
-        return const Scaffold(body: ReaderLoadingView());
+        return const Scaffold(
+          backgroundColor: Color(0xFFFBF7F0),
+          body: ReaderLoadingView(),
+        );
       }
 
       return MushafReaderView(

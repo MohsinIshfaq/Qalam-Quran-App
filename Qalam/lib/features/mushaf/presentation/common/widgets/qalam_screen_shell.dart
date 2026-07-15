@@ -21,10 +21,12 @@ class QalamScreenShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBackgroundColor =
+        backgroundColor ??
+        (nightMode ? const Color(0xFF07100D) : const Color(0xFFFBF7F0));
+
     return Scaffold(
-      backgroundColor:
-          backgroundColor ??
-          (nightMode ? const Color(0xFF07100D) : const Color(0xFFFBF7F0)),
+      backgroundColor: effectiveBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -33,6 +35,7 @@ class QalamScreenShell extends StatelessWidget {
               subtitle: subtitle,
               nightMode: nightMode,
               showBackButton: showBackButton,
+              backgroundColor: effectiveBackgroundColor,
             ),
             Expanded(child: child),
           ],
@@ -48,12 +51,14 @@ class _QalamHeader extends StatelessWidget {
     required this.subtitle,
     required this.nightMode,
     required this.showBackButton,
+    required this.backgroundColor,
   });
 
   final String title;
   final String subtitle;
   final bool nightMode;
   final bool showBackButton;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -64,9 +69,7 @@ class _QalamHeader extends StatelessWidget {
         ? const Color(0xFFB8C9C1)
         : const Color(0xFF625747);
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: nightMode ? const Color(0xFF0A120F) : const Color(0xFFFBF7F0),
-      ),
+      decoration: BoxDecoration(color: backgroundColor),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
         child: Row(

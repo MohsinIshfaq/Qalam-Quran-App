@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pdfx/pdfx.dart';
 
@@ -86,25 +87,41 @@ class MushafReaderView extends StatelessWidget {
       },
     );
 
-    return Obx(
-      () => QalamScreenShell(
-        title: displayPageLabel(source, session.currentPage),
-        subtitle:
-            '${source.lineCount}-Line Quran - Para ${session.currentJuz.number}',
-        nightMode: session.nightMode,
-        backgroundColor: session.nightMode
-            ? const Color(0xFF07100D)
-            : const Color(0xFFF2EADA),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            pdfView,
-            if (session.nightMode)
-              const IgnorePointer(child: ColoredBox(color: Color(0x33000000))),
-          ],
+    return Obx(() {
+      final nightMode = session.nightMode;
+      final backgroundColor = nightMode
+          ? const Color(0xFF07100D)
+          : const Color(0xFFFBF7F0);
+
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value:
+            (nightMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+                .copyWith(
+                  statusBarColor: Colors.transparent,
+                  systemNavigationBarColor: backgroundColor,
+                  systemNavigationBarIconBrightness: nightMode
+                      ? Brightness.light
+                      : Brightness.dark,
+                ),
+        child: QalamScreenShell(
+          title: displayPageLabel(source, session.currentPage),
+          subtitle:
+              '${source.lineCount}-Line Quran - Para ${session.currentJuz.number}',
+          nightMode: nightMode,
+          backgroundColor: backgroundColor,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              pdfView,
+              if (nightMode)
+                const IgnorePointer(
+                  child: ColoredBox(color: Color(0x33000000)),
+                ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   static PhotoViewGalleryPageOptions _buildPdfPage(
