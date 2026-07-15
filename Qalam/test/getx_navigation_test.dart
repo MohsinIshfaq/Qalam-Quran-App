@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:qalam/app/qalam_app.dart';
@@ -133,6 +132,60 @@ void main() {
     expect(find.text('Surah 114'), findsOneWidget);
     expect(find.text('An-Nas'), findsOneWidget);
     expect(find.text('الناس'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Page picker can be dismissed and reopened safely', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 500));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const QalamApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('13-Line'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Page #').first,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SingleChildScrollView),
+            matching: find.byType(Scrollable),
+          )
+          .last,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Page #').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('Page number'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    Get.back<void>();
+    await tester.pump();
+    tester.view.resetViewInsets();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('Page #').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    Get.back<void>();
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 }

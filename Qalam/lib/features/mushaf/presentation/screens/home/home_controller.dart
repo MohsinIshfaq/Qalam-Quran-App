@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../../app/routes/app_routes.dart';
@@ -15,6 +14,7 @@ class HomeController extends GetxController {
   HomeController(this.session);
 
   final MushafSessionController session;
+  bool _isPagePickerOpen = false;
 
   String get title => '${session.source.lineCount}-Line Quran';
 
@@ -48,10 +48,12 @@ class HomeController extends GetxController {
   }
 
   Future<void> openPagePicker() async {
+    if (_isPagePickerOpen) {
+      return;
+    }
+
+    _isPagePickerOpen = true;
     final source = session.source;
-    final pageController = TextEditingController(
-      text: source.displayPageForPdfPage(session.currentPage).toString(),
-    );
     int? page;
 
     try {
@@ -59,17 +61,17 @@ class HomeController extends GetxController {
         QalamBottomSheet(
           child: PageNumberPanel(
             source: source,
-            pageController: pageController,
+            initialPage: source.displayPageForPdfPage(session.currentPage),
           ),
         ),
         isScrollControlled: true,
         ignoreSafeArea: false,
       );
     } finally {
-      pageController.dispose();
+      _isPagePickerOpen = false;
     }
 
-    if (page != null) {
+    if (page != null && !isClosed) {
       await openReader(page: page);
     }
   }
