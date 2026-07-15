@@ -1,10 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../common/widgets/qalam_menu_tile.dart';
-import '../../common/widgets/qalam_screen_shell.dart';
+import 'components/mushaf_layout_card.dart';
+import 'components/line_selection_style.dart';
+import 'components/selection_footer.dart';
+import 'components/selection_hero.dart';
+import 'components/selection_intro.dart';
 import 'line_selection_controller.dart';
 
 class LineSelectionScreen extends GetView<LineSelectionController> {
@@ -12,51 +16,82 @@ class LineSelectionScreen extends GetView<LineSelectionController> {
 
   @override
   Widget build(BuildContext context) {
-    final nightMode =
-        Theme.of(context).colorScheme.brightness == Brightness.dark;
-
-    return QalamScreenShell(
-      title: 'Qalam',
-      subtitle: 'Select Quran line format',
-      nightMode: nightMode,
-      showBackButton: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 720;
-
-          return SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              isWide ? 40 : 20,
-              18,
-              isWide ? 40 : 20,
-              28,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 860),
-                child: GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: isWide ? 3 : 1,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: isWide ? 1.45 : 2.45,
-                  children: controller.sources
-                      .map(
-                        (source) => QalamMenuTile(
-                          title: '${source.lineCount}-Line',
-                          subtitle: 'Open Quran',
-                          icon: Icons.auto_stories_outlined,
-                          nightMode: nightMode,
-                          onTap: () => unawaited(controller.openSource(source)),
-                        ),
-                      )
-                      .toList(growable: false),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: LineSelectionStyle.deepGreen,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: LineSelectionStyle.ivory,
+        body: SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
                 ),
+                slivers: [
+                  const SliverToBoxAdapter(
+                    child: SelectionHero(
+                      logoAsset: LineSelectionController.logoAssetPath,
+                      bookAsset: LineSelectionController.heroAssetPath,
+                      archAsset:
+                          LineSelectionController.backgroundArchAssetPath,
+                      brandName: LineSelectionController.brandName,
+                      tagline: LineSelectionController.tagline,
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: SelectionIntro(
+                      title: LineSelectionController.sectionTitle,
+                      subtitle: LineSelectionController.sectionSubtitle,
+                    ),
+                  ),
+                  SliverLayoutBuilder(
+                    builder: (context, constraints) {
+                      final horizontalPadding =
+                          constraints.crossAxisExtent < 360 ? 16.0 : 24.0;
+
+                      return SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          0,
+                          horizontalPadding,
+                          8,
+                        ),
+                        sliver: SliverList.separated(
+                          itemCount: controller.layouts.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final layout = controller.layouts[index];
+
+                            return Obx(
+                              () => MushafLayoutCard(
+                                title: layout.title,
+                                description: layout.description,
+                                artworkAsset: layout.artworkAssetPath,
+                                patternAsset: LineSelectionController
+                                    .cardPatternAssetPath,
+                                isLoading: controller.isOpening(layout),
+                                onTap: () =>
+                                    unawaited(controller.selectLayout(layout)),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                  const SliverToBoxAdapter(child: SelectionFooter()),
+                ],
               ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

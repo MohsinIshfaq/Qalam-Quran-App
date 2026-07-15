@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:qalam/app/qalam_app.dart';
@@ -23,6 +25,10 @@ void main() {
 
     expect(Get.currentRoute, AppRoutes.lineSelection);
     expect(find.text('13-Line'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('16-Line'), 250);
+    await tester.pumpAndSettle();
+
     expect(find.text('15-Line'), findsOneWidget);
     expect(find.text('16-Line'), findsOneWidget);
 
@@ -46,11 +52,35 @@ void main() {
     expect(Get.currentRoute, AppRoutes.lineSelection);
     expect(Get.isRegistered<MushafSessionController>(), isFalse);
 
+    await tester.scrollUntilVisible(find.text('13-Line'), -250);
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('13-Line'));
     await tester.pumpAndSettle();
 
     expect(find.text('13-Line Quran'), findsOneWidget);
     expect(Get.find<MushafSessionController>().source.lineCount, 13);
+  });
+
+  testWidgets('Line selection remains usable on a narrow phone', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const QalamApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your Quran. Your Connection.'), findsOneWidget);
+    expect(find.text('Select Mushaf Layout'), findsOneWidget);
+    expect(find.text('13-Line'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.scrollUntilVisible(find.text('16-Line'), 250);
+    await tester.pumpAndSettle();
+
+    expect(find.text('16-Line'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
 
