@@ -5,6 +5,8 @@ import 'package:qalam/app/qalam_app.dart';
 import 'package:qalam/app/routes/app_routes.dart';
 import 'package:qalam/features/mushaf/domain/repositories/mushaf_repository.dart';
 import 'package:qalam/features/mushaf/presentation/common/controllers/mushaf_session_controller.dart';
+import 'package:qalam/features/splash/presentation/splash_controller.dart';
+import 'package:qalam/features/splash/presentation/splash_screen.dart';
 
 void main() {
   setUp(() {
@@ -16,11 +18,28 @@ void main() {
     Get.reset();
   });
 
-  testWidgets('GetX routes open the selected Mushaf and Para index', (
+  testWidgets('Splash screen opens the Mushaf layout selection', (
     tester,
   ) async {
     await tester.pumpWidget(const QalamApp());
+    await tester.pump();
+
+    expect(Get.currentRoute, AppRoutes.splash);
+    expect(find.byType(SplashScreen), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+
+    await tester.pump(SplashController.minimumDisplayDuration);
     await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.lineSelection);
+    expect(find.text('Select Mushaf Layout'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('GetX routes open the selected Mushaf and Para index', (
+    tester,
+  ) async {
+    await _pumpPastSplash(tester);
 
     expect(Get.currentRoute, AppRoutes.lineSelection);
     expect(find.text('13-Line'), findsOneWidget);
@@ -67,8 +86,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(320, 700));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const QalamApp());
-    await tester.pumpAndSettle();
+    await _pumpPastSplash(tester);
 
     expect(find.text('Your Quran. Your Connection.'), findsOneWidget);
     expect(find.text('Select Mushaf Layout'), findsOneWidget);
@@ -86,8 +104,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(320, 700));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const QalamApp());
-    await tester.pumpAndSettle();
+    await _pumpPastSplash(tester);
 
     await tester.tap(find.text('13-Line'));
     await tester.pumpAndSettle();
@@ -112,8 +129,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(320, 700));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const QalamApp());
-    await tester.pumpAndSettle();
+    await _pumpPastSplash(tester);
 
     await tester.tap(find.text('13-Line'));
     await tester.pumpAndSettle();
@@ -141,8 +157,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(320, 500));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const QalamApp());
-    await tester.pumpAndSettle();
+    await _pumpPastSplash(tester);
 
     await tester.tap(find.text('13-Line'));
     await tester.pumpAndSettle();
@@ -188,6 +203,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<void> _pumpPastSplash(WidgetTester tester) async {
+  await tester.pumpWidget(const QalamApp());
+  await tester.pump();
+  await tester.pump(SplashController.minimumDisplayDuration);
+  await tester.pumpAndSettle();
 }
 
 class _MemoryMushafRepository implements MushafRepository {

@@ -65,6 +65,7 @@ flutter:
     - assets/images/mushaf_selection_hero.jpg
     - assets/images/line_selection/
     - assets/images/home/home_lantern_cutout.png
+    - assets/images/splash/qalam_splash.png
     - assets/mushaf/13_line/complete_quran_13_line.pdf
     - assets/mushaf/15_line/complete_quran_15_line.pdf
     - assets/mushaf/16_line/complete_quran_16_line.pdf

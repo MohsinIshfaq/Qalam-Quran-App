@@ -16,7 +16,7 @@ class QalamApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Qalam',
       initialBinding: InitialBinding(),
-      initialRoute: AppRoutes.lineSelection,
+      initialRoute: AppRoutes.splash,
       getPages: AppPages.pages,
       smartManagement: SmartManagement.full,
       defaultTransition: Transition.native,
