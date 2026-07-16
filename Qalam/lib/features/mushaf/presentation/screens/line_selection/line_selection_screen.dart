@@ -86,7 +86,7 @@ class LineSelectionScreen extends GetView<LineSelectionController> {
                       );
                     },
                   ),
-                  const SliverToBoxAdapter(child: SelectionFooter()),
+                  // const SliverToBoxAdapter(child: SelectionFooter()),
                 ],
               ),
             ),

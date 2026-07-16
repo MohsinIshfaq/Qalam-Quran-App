@@ -116,10 +116,10 @@ class HomeScreen extends GetView<HomeController> {
                           },
                         ),
                         const SizedBox(height: 14),
-                        HomeSettingsCard(
-                          subtitle: controller.settingsMode,
-                          onTap: () => unawaited(controller.openSettings()),
-                        ),
+                        // HomeSettingsCard(
+                        //   subtitle: controller.settingsMode,
+                        //   onTap: () => unawaited(controller.openSettings()),
+                        // ),
                         const QalamFooterOrnament(),
                       ],
                     ),
